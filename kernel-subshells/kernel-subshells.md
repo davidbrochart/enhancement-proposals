@@ -40,7 +40,9 @@ for:
 A sub-shell should be advertised to the client with a shell ID, which must be sent along with
 further messages on the shell channel in order to target a sub-shell. This allows any other client
 (console, notebook, etc.) to use this sub-shell. If no shell ID is sent, the message targets the
-main shell. Sub-shells are thus multiplexed on the shell channel through the shell ID, and it is the responsibility of the kernel to route the messages to the target sub-shell according to the shell ID.
+main shell. Sub-shells are thus multiplexed on the shell channel through the shell ID, and it is the
+responsibility of the kernel to route the messages to the target sub-shell according to the shell
+ID.
 
 
 Essentially, a client connecting through a sub-shell should see no difference with a connection
