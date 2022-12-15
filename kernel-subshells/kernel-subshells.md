@@ -37,12 +37,14 @@ for:
 - deleting a sub-shell,
 - listing existing sub-shells.
 
-A kernel could choose to implement sub-shells by running them in separate threads, although it is
-not enforced.
+A sub-shell should be advertised to the client with a shell ID, which must be sent along with
+further messages on the shell channel in order to target a sub-shell. This allows any other client
+(console, notebook, etc.) to use this sub-shell. If no shell ID is sent, the message targets the
+main shell. Sub-shells are thus multiplexed on the shell channel through the shell ID.
 
-A sub-shell should be advertised to the front-end with a new kernel ID, so that any client can
-connect to it (console, notebook, etc.). Conceptually, clients see a new kernel, although it is
-actually the same kernel that the main shell is connected to.
+Internally, kernels must use the shell ID to route shell messages to sub-shells. They could use a
+separate thread to get shell messages, and dedicated threads for each sub-shell. The main shell
+should execute in the main thread.
 
 Essentially, a client connecting through a sub-shell should see no difference with a connection
 through the main shell, and it does not need to be aware of it. However, a front-end should provide
@@ -54,16 +56,7 @@ is the responsibility of users to not corrupt the kernel state with non thread-s
 
 ## Create sub-shell
 
-Message type: `create_subshell_request`:
-
-```py
-content = {
-    # The ID of the kernel that the main shell refers to (optional).
-    # If provided, the kernel ID in the reply should append an ID to this ID, e.g.:
-    # 'ab89' -> 'ab89_0'
-    'kernel_id': str
-}
-```
+Message type: `create_subshell_request`: no content.
 
 Message type: `create_subshell_reply`:
 
@@ -72,8 +65,8 @@ content = {
     # 'ok' if the request succeeded or 'error', with error information as in all other replies.
     'status': 'ok',
 
-    # The ID of the kernel that the sub-shell refers to, e.g.: 'ab89_0'
-    'kernel_id': str
+    # The ID of the sub-shell.
+    'shell_id': str
 }
 ```
 
@@ -83,8 +76,8 @@ Message type: `delete_subshell_request`:
 
 ```py
 content = {
-    # The ID of the kernel that the sub-shell refers to.
-    'kernel_id': str
+    # The ID of the sub-shell.
+    'shell_id': str
 }
 ```
 
@@ -99,13 +92,21 @@ content = {
 
 ## List sub-shells
 
-Message type: `list_subshells_request`: this message has no content.
+Message type: `list_subshell_request`: no content.
 
-Message type: `list_subshells_reply`:
+Message type: `list_subshell_reply`:
 
 ```py
 content = {
-    # A list of kernel IDs created by sub-shells.
-    'kernel_ids': [str]
+    # A list of sub-shell IDs.
+    'shell_id': [str]
 }
 ```
+
+# Points of discussion
+
+The question of sub-shell ownership and life cycle is open, in particular:
+- Is a sub-shell responsible for deleting itself, or can a shell delete other sub-shells?
+- Can a sub-shell create other sub-shells?
+- Does sub-shells have the same rights as the main shell? For instance, should they be allowed to
+  shut down or restart the kernel?
